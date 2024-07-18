@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 end_date = (datetime.datetime.now() + datetime.timedelta(days=0)).strftime('%Y%m%d')
 
 # Define the data fetching function using AkShare
-def get_data(symbol, start_date, end_date, interval):
+def get_data(symbol, start_date, end_date):
     try:
-        df = ak.stock_us_hist(symbol=str(symbol), period=str(interval), start_date=start_date, end_date=end_date, adjust="qfq")
+        df = ak.stock_us_hist(symbol=str(symbol), period='daily', start_date=start_date, end_date=end_date, adjust="qfq")
         df = df.sort_values(by='日期')
         df['日期'] = pd.to_datetime(df['日期'])
         df.set_index('日期', inplace=True)
@@ -34,18 +34,21 @@ st.title('Apple Stock Price Dashboard')
 
 # 选择时间间隔
 interval_map = {
-    '1 day': 'daily',
-    '5 days': '5d',
-    '1 month': '1mo',
-    '3 months': '3mo'
+    '1 day': 1,
+    '5 days': 5,
+    '1 month': 30,
+    '3 months': 90
 }
 interval = st.selectbox('Select Time Interval', ['1 day', '5 days', '1 month', '3 months'])
 
+# Calculate the start date based on the selected interval
+start_date = (datetime.datetime.now() - datetime.timedelta(days=interval_map[interval])).strftime('%Y%m%d')
+
 # 获取苹果股票数据
 @st.cache_data(ttl=60*5)
-def load_data(symbol, interval, retries=3):
+def load_data(symbol, start_date, end_date, retries=3):
     for i in range(retries):
-        data = get_data(symbol, start_date="20240101", end_date=end_date, interval=interval_map[interval])
+        data = get_data(symbol, start_date=start_date, end_date=end_date)
         if not data.empty:
             return data
         st.warning(f"Attempt {i+1} of {retries} failed.")
@@ -54,7 +57,7 @@ def load_data(symbol, interval, retries=3):
     return pd.DataFrame()
 
 # 根据选择的时间间隔加载数据
-data = load_data('105.AAPL', interval)
+data = load_data('105.AAPL', start_date, end_date)
 
 # 检查数据是否加载成功
 if not data.empty:
