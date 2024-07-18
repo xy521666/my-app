@@ -15,6 +15,14 @@ def get_data(symbol, start_date, end_date, interval):
         df = df.sort_values(by='日期')
         df['日期'] = pd.to_datetime(df['日期'])
         df.set_index('日期', inplace=True)
+        df.rename(columns={
+            '开盘': 'Open',
+            '收盘': 'Close',
+            '最高': 'High',
+            '最低': 'Low',
+            '成交量': 'Volume',
+            '成交额': 'Turnover'
+        }, inplace=True)
         time.sleep(0.2)
         return df
     except Exception as e:
@@ -26,14 +34,12 @@ st.title('Apple Stock Price Dashboard')
 
 # 选择时间间隔
 interval_map = {
-    '1m': '1分钟',
-    '5m': '5分钟',
-    '15m': '15分钟',
-    '30m': '30分钟',
-    '1h': '60分钟',
-    '1d': 'daily'
+    '1 day': 'daily',
+    '5 days': '5d',
+    '1 month': '1mo',
+    '3 months': '3mo'
 }
-interval = st.selectbox('Select Time Interval', ['1m', '5m', '15m', '30m', '1h', '1d'])
+interval = st.selectbox('Select Time Interval', ['1 day', '5 days', '1 month', '3 months'])
 
 # 获取苹果股票数据
 @st.cache_data(ttl=60*5)
@@ -61,20 +67,20 @@ if not data.empty:
     # 绘制股票价格图
     st.subheader(f'Apple Stock Price ({interval})')
     fig, ax = plt.subplots()
-    ax.plot(data.index, data['收盘'], label='Close Price')
+    ax.plot(data.index, data['Close'], label='Close Price')
 
     # 添加技术指标
     if 'SMA' in indicators:
-        data['SMA'] = data['收盘'].rolling(window=20).mean()
+        data['SMA'] = data['Close'].rolling(window=20).mean()
         ax.plot(data.index, data['SMA'], label='SMA')
 
     if 'EMA' in indicators:
-        data['EMA'] = data['收盘'].ewm(span=20, adjust=False).mean()
+        data['EMA'] = data['Close'].ewm(span=20, adjust=False).mean()
         ax.plot(data.index, data['EMA'], label='EMA')
 
     if 'Bollinger Bands' in indicators:
-        data['SMA'] = data['收盘'].rolling(window=20).mean()
-        data['stddev'] = data['收盘'].rolling(window=20).std()
+        data['SMA'] = data['Close'].rolling(window=20).mean()
+        data['stddev'] = data['Close'].rolling(window=20).std()
         data['Upper'] = data['SMA'] + (data['stddev'] * 2)
         data['Lower'] = data['SMA'] - (data['stddev'] * 2)
         ax.plot(data.index, data['Upper'], label='Upper Band')
